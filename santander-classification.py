@@ -231,8 +231,9 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
                                   cv=cv, refit_parameter="precision",
                                   X=X, y=y)
 
+
 # Coarse grid searchs with observations
-_, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
+# _, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
 # 1 search: (alpha: best=0.1, discard:1)
 # 2 search: (alpha: discard:0.1)
 #           (loss: best recall/F1:"squared_hinge" w/ alpha=0.01,0.1,
@@ -248,8 +249,8 @@ _, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
 # Chosen classifiers:
 # sgd_clf_1 = SGDClassifier(random_state=8, penalty='elasticnet', loss="squared_hinge",
 #                           alpha=0.01, l1_ratio=0.4)
-sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
-                          alpha=0.002, l1_ratio=0.7)
+# sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
+#                           alpha=0.002, l1_ratio=0.7)
 # sgd_clf_3 = SGDClassifier(random_state=8, penalty='elasticnet', loss="hinge",
 #                           alpha=0.01, l1_ratio=0.3)
 # sgd_clf_4 = SGDClassifier(random_state=8, penalty='elasticnet', loss="log",
@@ -271,7 +272,7 @@ sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron
 
 
 # Very similar behaviour. SGD 1 and 2 are more stable over threshold, SGD 2 is selected as the best SGD classifier
-sgd_clf_scores = clf_scores(sgd_clf_2, title="Tunned SGD classifier")
+# sgd_clf_scores = clf_scores(sgd_clf_2, title="Tunned SGD classifier")
 # Tunned SGD classifier
 # Train Precision = 0.5860
 # Test Precision = 0.5790   -> Improved 42.7% from default SGD classifier
@@ -279,3 +280,41 @@ sgd_clf_scores = clf_scores(sgd_clf_2, title="Tunned SGD classifier")
 # Test Recall = 0.3673      -> Improved 24.1% from default SGD classifier
 # Train F1 score = 0.4552
 # Test F1 score = 0.4494    -> Improved 32.1% from default SGD classifier
+
+
+# Plot learning curves of SGD classifier
+from sklearn.metrics import f1_score
+
+def plot_SGD_learning_curve(max_epochs=100):
+    # Split reduced data into train and validation sets
+    X_train_learn, X_val_learn, y_train_learn, y_val_learn = train_test_split(X_train_scaled_red, y_train_red,
+                                                                              test_size=0.2, random_state=8,
+                                                                              stratify=y_train_red)
+
+    # Classifier with fixed max_iter to check F1 score over epochs
+    sgd_clf_step = SGDClassifier(max_iter=10, random_state=8, penalty='elasticnet', loss="squared_hinge",
+                                 alpha=0.01, l1_ratio=0.4, warm_start=True, tol=-np.infty)
+
+    # Create arrays of F1 scores over epochs
+    n_epochs = int(max_epochs/10) # Due to max_iter=10
+    train_scores_array = np.empty(n_epochs)
+    val_scores_array = np.empty(n_epochs)
+
+    for epoch in range(n_epochs):
+        sgd_clf_step.fit(X_train_learn, y_train_learn.ravel())
+        y_train_learn_predict = sgd_clf_step.predict(X_train_learn)
+        y_val_learn_predict = sgd_clf_step.predict(X_val_learn)
+        train_score = f1_score(y_train_learn, y_train_learn_predict)
+        val_score = f1_score(y_val_learn, y_val_learn_predict)
+        train_scores_array[epoch] = train_score
+        val_scores_array[epoch] = val_score
+
+    # Plot train and validation learning curves
+    plt.plot(val_scores_array, "b-", linewidth=3, label="Validation set")
+    plt.plot(train_scores_array, "r--", linewidth=2, label="Training set")
+    plt.legend(loc="upper right", fontsize=14)
+    plt.xlabel("Epoch x10", fontsize=14)
+    plt.ylabel("F1 score", fontsize=14)
+    plt.show()
+
+# plot_SGD_learning_curve(100) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
