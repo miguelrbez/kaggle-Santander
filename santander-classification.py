@@ -41,6 +41,29 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
 # print((y_test == True).sum() / len(y_test)) # 0.1005
 
 
+# Histogram of features mean values
+# plt.figure()
+# plt.hist(features_mean_values)
+# plt.show()
+
+# The features mean values has a Gaussian shape, maybe some features are correlated
+
+
+# Histogram of features std values
+# plt.figure()
+# plt.hist(features_std_values)
+# plt.show()
+
+# The features std values are mostly close to 0, this could lead to the correlation hypothesis
+
+
+# Correlation matrix of features
+# corr_matrix = pd.DataFrame(X_train).corr().values
+
+# Mean correlation value of features
+# mean_corr_values = np.mean(corr_matrix, axis=0)
+
+
 # Scale features
 from sklearn.preprocessing import StandardScaler
 
