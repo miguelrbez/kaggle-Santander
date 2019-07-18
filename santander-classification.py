@@ -120,7 +120,7 @@ def scale_R_data(X_train=X_train, X_test=X_test):
     scaler_robust.fit(X_train)
     return scaler_robust.transform(X_train), scaler_robust.transform(X_test)
 
-
+# Scale w/ robust X features
 X_train_scaled_R, X_test_scaled_R = scale_R_data()
 
 
@@ -321,15 +321,15 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
 # 4 search: similar results
 
 
-# # Chosen classifiers:
-# sgd_clf_1 = SGDClassifier(random_state=8, penalty='elasticnet', loss="squared_hinge",
-#                           alpha=0.01, l1_ratio=0.4)
-# sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
-#                           alpha=0.002, l1_ratio=0.7)
-# sgd_clf_3 = SGDClassifier(random_state=8, penalty='elasticnet', loss="hinge",
-#                           alpha=0.01, l1_ratio=0.3)
-# sgd_clf_4 = SGDClassifier(random_state=8, penalty='elasticnet', loss="log",
-#                           alpha=0.001, l1_ratio=0.6)
+# Chosen classifiers:
+sgd_clf_1 = SGDClassifier(random_state=8, penalty='elasticnet', loss="squared_hinge",
+                          alpha=0.01, l1_ratio=0.4)
+sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
+                          alpha=0.002, l1_ratio=0.7)
+sgd_clf_3 = SGDClassifier(random_state=8, penalty='elasticnet', loss="hinge",
+                          alpha=0.01, l1_ratio=0.3)
+sgd_clf_4 = SGDClassifier(random_state=8, penalty='elasticnet', loss="log",
+                          alpha=0.001, l1_ratio=0.6)
 
 
 # Predict reduced y_scores and plot precision-recall curve for SGD classifiers
@@ -428,3 +428,65 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         plt.show()
 
 # plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+
+
+# Dimension reduction using PCA
+from sklearn.decomposition import PCA
+
+# Returns X_train and X_test with n_components features after PCA
+def pca_X(X_train=X_train, X_test=X_test,
+          n_components=100, whiten=False):
+    pca = PCA(n_components, whiten=whiten)
+    pca.fit(X_train)
+    X_train_pca = pca.transform(X_train)
+    X_test_pca = pca.transform(X_test)
+    return X_train_pca, X_test_pca
+
+
+# # # Test SGD classifiers without whiten
+# X_train_pca, X_test_pca = pca_X()
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
+# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA") # Worse recall
+#
+#
+# # Test SGD classifiers with whiten
+# X_train_pca, X_test_pca = pca_X(whiten=True)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+#
+#
+# # Test SGD classifiers with whiten and more components
+# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=150)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 150 components") # Almost equal to Tuned SGD w/ robust scaling
+#
+#
+# # Test SGD classifiers with whiten and most components
+# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 190 components") # Almost equal to Tuned SGD w/ robust scaling
+# # Tuned SGD with PCA (Whiten) and 190 components
+# # Train Precision = 0.5264
+# # Test Precision = 0.5280
+# # Train Recall = 0.4131
+# # Test Recall = 0.4135
+# # Train F1 score = 0.4627
+# # Test F1 score = 0.4636
+
+
+# # Test forest classifiers with whiten and most components
+# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(forest_clf, X_train_pca, y_train, "Forest with PCA (Whiten) and 190 components") # Recall = 0
+
+
+# Kernel approximation
+
+
+
+
+
+
+# Tuning forest hyper-parameters
