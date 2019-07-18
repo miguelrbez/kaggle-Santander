@@ -149,14 +149,16 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
 # Compute y scores (y_proba) for classifiers
 from sklearn.model_selection import cross_val_predict
 
-def predict_scores_sgd(sgd_clf = sgd_clf, X=X_train_scaled, y_true=y_train):
+def predict_scores_sgd(X=X_train_scaled, y_true=y_train,
+                       sgd_clf=SGDClassifier(random_state=8)):
     y_scores_sgd = cross_val_predict(sgd_clf, X, y_true,
                                      cv=3, method='decision_function')
     return y_true, y_scores_sgd
 
-def predict_scores_forest(X=X_train_scaled, y_true=y_train):
+def predict_scores_forest(X=X_train_scaled, y_true=y_train,
+                          forest_clf=RandomForestClassifier(random_state=8)):
     y_scores_forest = cross_val_predict(forest_clf, X, y_true,
-                                        cv=3, method='predict_proba')[:, 1]
+                                        cv=2, method='predict_proba')[:, 1]
     return y_true, y_scores_forest
 
 
@@ -179,10 +181,10 @@ def plot_precision_recall_curve(y_true, y_scores, title=None):
 
 # Predict y_scores and plot precision-recall curve for classifiers
 # y_true, y_scores_sgd = predict_scores_sgd(X_train_scaled, y_train)
-# plot_precision_recall_curve(y_true, y_scores_sgd, "SGD")
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Default SGD")
 #
 # y_true, y_scores_forest = predict_scores_forest(X_train_scaled, y_train)
-# plot_precision_recall_curve(y_true, y_scores_forest, "Forest")
+# plot_precision_recall_curve(y_true, y_scores_forest, "Default forest")
 
 
 # Tunning hyper-parameters
@@ -199,6 +201,9 @@ def hyper_parameter_tuning(clf, param_grid, scoring, df_path,
     results_grid_search = pd.DataFrame(grid_search.cv_results_)
     results_grid_search.to_csv(df_path)
     return grid_search.best_estimator_, results_grid_search
+
+
+# Tuning SGD hyper-parameters
 
 # Grid search for SGD classifier
 def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
@@ -232,7 +237,7 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
                                   X=X, y=y)
 
 
-# Coarse grid searchs with observations
+# Grid search and oobservations
 # _, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
 # 1 search: (alpha: best=0.1, discard:1)
 # 2 search: (alpha: discard:0.1)
@@ -285,36 +290,77 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
 # Plot learning curves of SGD classifier
 from sklearn.metrics import f1_score
 
-def plot_SGD_learning_curve(max_epochs=100):
-    # Split reduced data into train and validation sets
-    X_train_learn, X_val_learn, y_train_learn, y_val_learn = train_test_split(X_train_scaled_red, y_train_red,
-                                                                              test_size=0.2, random_state=8,
-                                                                              stratify=y_train_red)
+def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
+    if max_iter_sgd > max_epochs:
+        print("max_epochs must be greater or equal to max_iter_sgd")
+    else:
+        # Split reduced data into train and validation sets
+        X_train_learn, X_val_learn, y_train_learn, y_val_learn = train_test_split(X_train_scaled_red, y_train_red,
+                                                                                  test_size=0.2, random_state=8,
+                                                                                  stratify=y_train_red)
 
-    # Classifier with fixed max_iter to check F1 score over epochs
-    sgd_clf_step = SGDClassifier(max_iter=10, random_state=8, penalty='elasticnet', loss="squared_hinge",
-                                 alpha=0.01, l1_ratio=0.4, warm_start=True, tol=-np.infty)
+        # Classifier with fixed max_iter to check F1 score over epochs
+        sgd_clf_step = SGDClassifier(max_iter=max_iter_sgd, random_state=8, penalty='elasticnet', loss="squared_hinge",
+                                     alpha=0.01, l1_ratio=0.4, warm_start=True, tol=-np.infty)
 
-    # Create arrays of F1 scores over epochs
-    n_epochs = int(max_epochs/10) # Due to max_iter=10
-    train_scores_array = np.empty(n_epochs)
-    val_scores_array = np.empty(n_epochs)
+        # Create arrays of F1 scores over epochs
+        n_epochs = int(max_epochs/max_iter_sgd)
+        train_scores_array = np.empty(n_epochs)
+        val_scores_array = np.empty(n_epochs)
 
-    for epoch in range(n_epochs):
-        sgd_clf_step.fit(X_train_learn, y_train_learn.ravel())
-        y_train_learn_predict = sgd_clf_step.predict(X_train_learn)
-        y_val_learn_predict = sgd_clf_step.predict(X_val_learn)
-        train_score = f1_score(y_train_learn, y_train_learn_predict)
-        val_score = f1_score(y_val_learn, y_val_learn_predict)
-        train_scores_array[epoch] = train_score
-        val_scores_array[epoch] = val_score
+        for epoch in range(n_epochs):
+            # random_ix = np.random.permutation(len(y_train_learn))
+            # sgd_clf_step.fit(X_train_learn[random_ix,:], y_train_learn.ravel()[random_ix])
+            sgd_clf_step.fit(X_train_learn, y_train_learn.ravel())
+            y_train_learn_predict = sgd_clf_step.predict(X_train_learn)
+            y_val_learn_predict = sgd_clf_step.predict(X_val_learn)
+            train_score = f1_score(y_train_learn, y_train_learn_predict)
+            val_score = f1_score(y_val_learn, y_val_learn_predict)
+            train_scores_array[epoch] = train_score
+            val_scores_array[epoch] = val_score
 
-    # Plot train and validation learning curves
-    plt.plot(val_scores_array, "b-", linewidth=3, label="Validation set")
-    plt.plot(train_scores_array, "r--", linewidth=2, label="Training set")
-    plt.legend(loc="upper right", fontsize=14)
-    plt.xlabel("Epoch x10", fontsize=14)
-    plt.ylabel("F1 score", fontsize=14)
-    plt.show()
+        # Plot train and validation learning curves
+        plt.plot(val_scores_array, "b-", linewidth=3, label="Validation set")
+        plt.plot(train_scores_array, "r--", linewidth=2, label="Training set")
+        plt.legend(loc="upper right", fontsize=14)
+        plt.xlabel(("Epoch x" + str(max_iter_sgd)), fontsize=14)
+        plt.ylabel("F1 score", fontsize=14)
+        plt.show()
 
-# plot_SGD_learning_curve(100) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+
+
+# Tuning forest hyper-parameters
+
+# Grid search for SGD classifier
+def grid_search_forest(cv=2, X=X_train_scaled_red, y=y_train_red):
+    forest_clf = RandomForestClassifier(random_state=8)
+
+    sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
+    param_grid_sgd = [{"loss": ["squared_hinge"],
+                      "alpha": [0.001],
+                      "l1_ratio": [0.4, 0.6, 0.9]},
+                      {"loss": ["squared_hinge"],
+                       "alpha": [0.01, 0.03, 0.1, 0.3],
+                       "l1_ratio": [0.4, 0.6]},
+                      {"loss": ["perceptron"],
+                      "alpha": [0.0008, 0.002],
+                      "l1_ratio": [0.7, 0.9]},
+                      {"loss": ["perceptron"],
+                       "alpha": [0.008, 0.02],
+                       "l1_ratio": [0.1, 0.3]},
+                      {"loss": ["hinge"],
+                       "alpha": [0.008, 0.02],
+                       "l1_ratio": [0.2, 0.4]},
+                      {"loss": ["log"],
+                       "alpha": [0.001],
+                       "l1_ratio": [0.4, 0.6]},
+                      {"loss": ["log"],
+                       "alpha": [0.01],
+                       "l1_ratio": [0.2, 0.4]}]
+    # param_grid_sgd = {"alpha": [0.0001, 0.01]}
+    scoring = ["precision", "recall", "f1"]
+    df_path = "./GridSearch dataframes/SGD.csv"
+    return hyper_parameter_tuning(sgd_clf, param_grid_sgd, scoring, df_path,
+                                  cv=cv, refit_parameter="precision",
+                                  X=X, y=y)
