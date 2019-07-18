@@ -39,9 +39,53 @@ from sklearn.model_selection import train_test_split
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
                                                     random_state=8, stratify=y)
 
-# Check whether the split has equitative positive and negative labels
+# # Check whether the split has equitative positive and negative labels
 # print((y_train == True).sum() / len(y_train)) # 0.1004875
 # print((y_test == True).sum() / len(y_test)) # 0.1005
+
+
+# Histogram of features mean values
+def hist_mean_values(X=X):
+    features_mean_values = np.mean(X, axis=0)
+    plt.figure()
+    plt.hist(features_mean_values)
+    plt.show()
+
+hist_mean_values(X)
+
+# The features mean values has a Gaussian shape, maybe some features are correlated
+
+
+# Histogram of features std values
+def hist_std_values(X=X):
+    features_std_values = np.std(X, axis=0)
+    plt.figure()
+    plt.hist(features_std_values)
+    plt.show()
+
+hist_std_values(X)
+
+# The features std values are mostly close to 0, this could lead to the correlation hypothesis
+
+
+# Plot 100 first values of the four least uniform features for insight purpose
+def select_highest_std_features(X):
+    features_std_values = np.std(X, axis=0)
+    features_std_values_sorted_ix = np.argsort(features_std_values)[::-1]
+    return X[:,features_std_values_sorted_ix[:4]]
+
+def plot_four_features(X_four_features):
+    plt.figure()
+    for i in range(4):
+        plt.subplot(2, 2, i+1)
+        plt.scatter(np.arange(100), X_four_features[:100,i])
+        if (i == 0) or (i == 2):
+            plt.ylabel('Var value')
+        if (i > 1):
+            plt.xlabel('Sample')
+    plt.show()
+
+plot_four_features(select_highest_std_features(X))
 
 
 # Scale features
@@ -57,7 +101,7 @@ X_train_scaled, X_test_scaled = scale_data()
 
 # Reduce train and test sets sample size to faster try out models
 X_train_red, X_test_red, y_train_red, y_test_red = train_test_split(X, y,
-                                                    test_size=0.1, train_size=0.4,
+                                                    test_size=0.05, train_size=0.2,
                                                     random_state=8, stratify=y)
 
 # Check whether the split has equitative positive and negative labels
@@ -68,7 +112,23 @@ X_train_red, X_test_red, y_train_red, y_test_red = train_test_split(X, y,
 X_train_scaled_red, X_test_scaled_red = scale_data(X_train_red, X_test_red)
 
 
-# Set classifiers
+# Scale features using RobustScaler
+from sklearn.preprocessing import RobustScaler
+
+def scale_R_data(X_train=X_train, X_test=X_test):
+    scaler_robust = RobustScaler()
+    scaler_robust.fit(X_train)
+    return scaler_robust.transform(X_train), scaler_robust.transform(X_test)
+
+
+X_train_scaled_R, X_test_scaled_R = scale_R_data()
+
+
+# Scale w/ robust reduced X features
+X_train_scaled_R_red, X_test_scaled_R_red = scale_R_data(X_train_red, X_test_red)
+
+
+# # Set classifiers
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 
@@ -100,7 +160,7 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
     return scores
 
 
-# Scores for SGD classifier using reduced and not-reduced X_train
+# Scores for SGD classifier using reduced and not-reduced X_train and standar/robust scaler
 
 # sgd_clf_scores = clf_scores(sgd_clf, X_train_scaled_red, y_train_red, title="SGD (reduced)")
 # # SGD (reduced)
@@ -120,6 +180,16 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
 # # Test Recall = 0.2960
 # # Train F1 score = 0.3500
 # # Test F1 score = 0.3403
+# # High bias
+
+# sgd_clf_scores = clf_scores(sgd_clf, X_train_scaled_R, y_train, title="SGD (Robust)")
+# # SGD (Robust)
+# # Train Precision = 0.4738
+# # Test Precision = 0.4551
+# # Train Recall = 0.2819
+# # Test Recall = 0.2770
+# # Train F1 score = 0.3507
+# # Test F1 score = 0.3419
 # # High bias
 
 
@@ -251,7 +321,7 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
 # 4 search: similar results
 
 
-# Chosen classifiers:
+# # Chosen classifiers:
 # sgd_clf_1 = SGDClassifier(random_state=8, penalty='elasticnet', loss="squared_hinge",
 #                           alpha=0.01, l1_ratio=0.4)
 # sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
@@ -286,6 +356,36 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
 # Train F1 score = 0.4552
 # Test F1 score = 0.4494    -> Improved 32.1% from default SGD classifier
 
+
+# # Tested tuned SGD classifier with robust scaling
+# sgd_clf_scores = clf_scores(sgd_clf_1, X_train_scaled_R, y_train, title="Tunned SGD classifier (Robust scaled)")
+# # Tunned SGD classifier 1 (Robust scaled)
+# # Train Precision = 0.5041
+# # Test Precision = 0.5049
+# # Train Recall = 0.4603
+# # Test Recall = 0.4627
+# # Train F1 score = 0.4812
+# # Test F1 score = 0.4829
+
+
+# Grid search for SGD classifier with robust scaling
+def grid_search_sgd_robust(cv=3, X=X_train_scaled_R, y=y_train):
+    sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
+    param_grid_sgd = [{"loss": ["squared_hinge"],
+                      "alpha": [0.001],
+                      "l1_ratio": [0.4, 0.6, 0.9]},
+                      {"loss": ["squared_hinge"],
+                       "alpha": [0.01, 0.03, 0.1, 0.3],
+                       "l1_ratio": [0.4, 0.6]}]
+    # param_grid_sgd = {"alpha": [0.0001, 0.01]}
+    scoring = ["precision", "recall", "f1"]
+    df_path = "./GridSearch dataframes/SGD_robust.csv"
+    return hyper_parameter_tuning(sgd_clf, param_grid_sgd, scoring, df_path,
+                                  cv=cv, refit_parameter="precision",
+                                  X=X, y=y)
+
+# _, sgd_gs_results_robust = grid_search_sgd_robust(2)
+# # Same results as with standard scaling
 
 # Plot learning curves of SGD classifier
 from sklearn.metrics import f1_score
@@ -327,40 +427,4 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         plt.ylabel("F1 score", fontsize=14)
         plt.show()
 
-plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
-
-
-# Tuning forest hyper-parameters
-
-# Grid search for SGD classifier
-def grid_search_forest(cv=2, X=X_train_scaled_red, y=y_train_red):
-    forest_clf = RandomForestClassifier(random_state=8)
-
-    sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
-    param_grid_sgd = [{"loss": ["squared_hinge"],
-                      "alpha": [0.001],
-                      "l1_ratio": [0.4, 0.6, 0.9]},
-                      {"loss": ["squared_hinge"],
-                       "alpha": [0.01, 0.03, 0.1, 0.3],
-                       "l1_ratio": [0.4, 0.6]},
-                      {"loss": ["perceptron"],
-                      "alpha": [0.0008, 0.002],
-                      "l1_ratio": [0.7, 0.9]},
-                      {"loss": ["perceptron"],
-                       "alpha": [0.008, 0.02],
-                       "l1_ratio": [0.1, 0.3]},
-                      {"loss": ["hinge"],
-                       "alpha": [0.008, 0.02],
-                       "l1_ratio": [0.2, 0.4]},
-                      {"loss": ["log"],
-                       "alpha": [0.001],
-                       "l1_ratio": [0.4, 0.6]},
-                      {"loss": ["log"],
-                       "alpha": [0.01],
-                       "l1_ratio": [0.2, 0.4]}]
-    # param_grid_sgd = {"alpha": [0.0001, 0.01]}
-    scoring = ["precision", "recall", "f1"]
-    df_path = "./GridSearch dataframes/SGD.csv"
-    return hyper_parameter_tuning(sgd_clf, param_grid_sgd, scoring, df_path,
-                                  cv=cv, refit_parameter="precision",
-                                  X=X, y=y)
+# plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
