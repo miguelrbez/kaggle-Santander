@@ -30,7 +30,9 @@ X = data.iloc[:, 2:].values
 y = data["target"].values
 
 # Positive/Negative ratio
-# print((y == True).sum() / len(y)) # 0.10049 -> Around 1 out of 10 samples is positive
+# print((y == True).sum() / len(y))
+# 0.10049 -> Around 1 out of 10 samples is positive. Accuracy is not the best scoring parameter
+
 
 
 # Split data into train and test set
@@ -362,12 +364,12 @@ sgd_clf_modified_huber = SGDClassifier(random_state=8, penalty='elasticnet', alp
 # Worse than standard scaling. Precision = 0.38, Recall = 0.31, F1 score = 0.34
 
 
-# Plot learning curves of SGD classifier
+# Plot epochs learning curves of SGD classifier to see if it converges
 from sklearn.metrics import f1_score
 from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 
-def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
+def plot_SGD_epochs_learning_curve(max_epochs=1000, max_iter_sgd=100):
     if max_iter_sgd > max_epochs:
         print("max_epochs must be greater or equal to max_iter_sgd")
     else:
@@ -407,6 +409,32 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         plt.show()
 
 # plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+
+
+# Plot class learning curves
+from sklearn.model_selection import learning_curve
+
+def plot_learning_curve(clf, X, y, train_sizes_n=10, scoring="f1", name=None):
+    train_sizes = np.linspace(.1, 1.0, train_sizes_n)
+    train_sizes, train_scores, val_scores = learning_curve(clf, X, y, cv=2, train_sizes=train_sizes, scoring=scoring)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    val_scores_mean = np.mean(val_scores, axis=1)
+    plt.figure()
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Train score")
+    plt.plot(train_sizes, val_scores_mean, 'o-', color="b", label="Validation score")
+    plt.legend()
+    plt.ylim([0, 1])
+    plt.xlabel("Training examples")
+    plt.ylabel(scoring)
+    if name:
+        plt.title(name)
+    plt.show()
+
+
+# SGD hinge learning curve for F1 score
+plot_learning_curve(sgd_clf_hinge, X_train_scaled_red, y_train_red, train_sizes_n=10, name="Reduced set - SGD hinge") # High bias
+
+
 
 
 # High bias possible solution: Expand features with polynomial ones. Memory problem due sample size, oprion PCA reduction
@@ -525,46 +553,13 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
 # Test F1 score = 0.0000
 
 
-# Tuning SGD (RBF mapped features) hyper-parameters
-
-# Grid search for hinge loss (SVC)
-# param_grid_sgd_rbf_hinge = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
-#                                                      0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
-#                                                      0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
-#                         "l1_ratio": [0.2, 0.8]}
-# _, sgd_gs_results_rbf_hinge = grid_search_sgd(param_grid_sgd_rbf_hinge, "rbf_hinge", 2, X_train_rbf, y_train) # Best: very small alpha
-#
-# param_grid_sgd_rbf_hinge = {"loss": ["hinge"], "alpha": [0.000000001, 0.00000001, 0.0000001], "l1_ratio": [0.2, 0.8]}
-# _, sgd_gs_results_rbf_hinge = grid_search_sgd(param_grid_sgd_rbf_hinge, "rbf_hinge_2", 2, X_train_rbf, y_train) # Same terrible performance
-
-
-# # Grid search for SGD classifiers with RBF mapping of features
-# param_grid_sgd_rbf = {"loss": ["squared_hinge", "perceptron", "hinge", "log"], "alpha": [0.00001, 0.001, 0.01], "l1_ratio": [0.2, 0.5, 0.8]}
-#
-# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf, "rbf", 2, X_train_rbf, y_train)
-# # # No improvement seen
-#
-# param_grid_sgd_rbf_2 = {"loss": ["hinge"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_2, "rbf_hinge", 2, X_train_rbf, y_train)
-# # # Nothing
-#
-# param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train_rbf, y_train)
-# # Nothing
-#
-# clf_scores(sgd_clf_5, X_train_rbf, y_train, title="SGD log with rbf mapping")
-#
-# y_true, y_scores = predict_scores_sgd(X_train_rbf, y_train, sgd_clf_5)
-# plot_precision_recall_curve(y_true, y_scores)
-
-
-
-
-
-
 
 
 # Tuning forest hyper-parameters
+
+
+
+
 
 
 # Test classifiers on X_train and X_test
