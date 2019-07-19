@@ -262,52 +262,41 @@ from sklearn.model_selection import GridSearchCV
 
 # Grid search for classifier, given a parameter grid. Save results as DataFrame pickle in given path
 # Return best estimator and DataFrame results
-def hyper_parameter_tuning(clf, param_grid, scoring, df_path,
-                           cv=3, refit_parameter=None,
-                           X=X_train_scaled, y=y_train):
+def hyper_parameter_tuning(clf, param_grid, scoring, df_path, cv=3, refit_parameter=None, X=X_train_scaled, y=y_train):
     grid_search = GridSearchCV(clf, param_grid, scoring, cv=cv,
                                refit=refit_parameter, return_train_score=True)
     grid_search.fit(X, y)
+    drop_columns = ['mean_fit_time', 'std_fit_time', 'mean_score_time', 'std_score_time', 'params',
+                    'split0_test_precision','split1_test_precision', 'std_test_precision', 'split0_train_precision',
+                    'split1_train_precision', 'std_train_precision', 'split0_test_recall', 'split1_test_recall',
+                    'std_test_recall', 'split0_train_recall', 'split1_train_recall', 'std_train_recall', 'split0_test_f1',
+                    'split1_test_f1', 'std_test_f1', 'split0_train_f1', 'split1_train_f1', 'std_train_f1']
     results_grid_search = pd.DataFrame(grid_search.cv_results_)
+    results_grid_search.drop(columns=drop_columns, inplace=True)
     results_grid_search.to_csv(df_path)
     return grid_search.best_estimator_, results_grid_search
 
 
 # Tuning SGD hyper-parameters
 
+# param_grid_sgd = [{"loss": ["squared_hinge"], "alpha": [0.001], "l1_ratio": [0.4, 0.6, 0.9]},
+#                   {"loss": ["squared_hinge"], "alpha": [0.01, 0.03, 0.1, 0.3], "l1_ratio": [0.4, 0.6]},
+#                   {"loss": ["perceptron"], "alpha": [0.0008, 0.002], "l1_ratio": [0.7, 0.9]},
+#                   {"loss": ["perceptron"], "alpha": [0.008, 0.02], "l1_ratio": [0.1, 0.3]},
+#                   {"loss": ["hinge"], "alpha": [0.008, 0.02], "l1_ratio": [0.2, 0.4]},
+#                   {"loss": ["log"], "alpha": [0.001], "l1_ratio": [0.4, 0.6]},
+#                   {"loss": ["log"], "alpha": [0.01], "l1_ratio": [0.2, 0.4]}]
+
 # Grid search for SGD classifier
-def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
+def grid_search_sgd(param_grid, name, cv=3, X=X_train_scaled, y=y_train):
     sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
-    param_grid_sgd = [{"loss": ["squared_hinge"],
-                      "alpha": [0.001],
-                      "l1_ratio": [0.4, 0.6, 0.9]},
-                      {"loss": ["squared_hinge"],
-                       "alpha": [0.01, 0.03, 0.1, 0.3],
-                       "l1_ratio": [0.4, 0.6]},
-                      {"loss": ["perceptron"],
-                      "alpha": [0.0008, 0.002],
-                      "l1_ratio": [0.7, 0.9]},
-                      {"loss": ["perceptron"],
-                       "alpha": [0.008, 0.02],
-                       "l1_ratio": [0.1, 0.3]},
-                      {"loss": ["hinge"],
-                       "alpha": [0.008, 0.02],
-                       "l1_ratio": [0.2, 0.4]},
-                      {"loss": ["log"],
-                       "alpha": [0.001],
-                       "l1_ratio": [0.4, 0.6]},
-                      {"loss": ["log"],
-                       "alpha": [0.01],
-                       "l1_ratio": [0.2, 0.4]}]
-    # param_grid_sgd = {"alpha": [0.0001, 0.01]}
     scoring = ["precision", "recall", "f1"]
-    df_path = "./GridSearch dataframes/SGD.csv"
-    return hyper_parameter_tuning(sgd_clf, param_grid_sgd, scoring, df_path,
-                                  cv=cv, refit_parameter="precision",
-                                  X=X, y=y)
+    df_path = "./GridSearch dataframes/SGD_" + name + ".csv"
+    return hyper_parameter_tuning(sgd_clf, param_grid, scoring, df_path, cv=cv, refit_parameter="precision", X=X, y=y)
 
+_, sgd_gs_results = grid_search_sgd(param_grid_sgd, name="", cv=3)
 
-# Grid search and oobservations
+# Coarse grid search and oobservations
 # _, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
 # 1 search: (alpha: best=0.1, discard:1)
 # 2 search: (alpha: discard:0.1)
@@ -319,6 +308,15 @@ def grid_search_sgd(cv=3, X=X_train_scaled, y=y_train):
 #           ("perceptron": low alpha w/ high l1),
 #           ("log": low alpha w/ high l1, high alpha w/low l1)
 # 4 search: similar results
+
+
+# Grid search for hinge
+param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01], "l1_ratio": [0.2, 0.8]} # Bigger than 0.01 don't work
+_, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge", 2, X_train, y_train)
+# # Nothing
+
+# param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train, y_train)
 
 
 # Chosen classifiers:
@@ -368,24 +366,13 @@ sgd_clf_4 = SGDClassifier(random_state=8, penalty='elasticnet', loss="log",
 # # Test F1 score = 0.4829
 
 
-# Grid search for SGD classifier with robust scaling
-def grid_search_sgd_robust(cv=3, X=X_train_scaled_R, y=y_train):
-    sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
-    param_grid_sgd = [{"loss": ["squared_hinge"],
-                      "alpha": [0.001],
-                      "l1_ratio": [0.4, 0.6, 0.9]},
-                      {"loss": ["squared_hinge"],
-                       "alpha": [0.01, 0.03, 0.1, 0.3],
-                       "l1_ratio": [0.4, 0.6]}]
-    # param_grid_sgd = {"alpha": [0.0001, 0.01]}
-    scoring = ["precision", "recall", "f1"]
-    df_path = "./GridSearch dataframes/SGD_robust.csv"
-    return hyper_parameter_tuning(sgd_clf, param_grid_sgd, scoring, df_path,
-                                  cv=cv, refit_parameter="precision",
-                                  X=X, y=y)
+# # Grid search for SGD classifier with robust scaling
+param_grid_sgd_robust = [{"loss": ["squared_hinge"], "alpha": [0.001], "l1_ratio": [0.4, 0.6, 0.9]},
+                         {"loss": ["squared_hinge"], "alpha": [0.01, 0.03, 0.1, 0.3], "l1_ratio": [0.4, 0.6]}]
 
-# _, sgd_gs_results_robust = grid_search_sgd_robust(2)
+_, sgd_gs_results_robust = grid_search_sgd(param_grid_sgd_robust, "robust", 2, X_train_scaled_R, y_train)
 # # Same results as with standard scaling
+
 
 # Plot learning curves of SGD classifier
 from sklearn.metrics import f1_score
@@ -435,11 +422,13 @@ from sklearn.decomposition import PCA
 
 # Returns X_train and X_test with n_components features after PCA
 def pca_X(X_train=X_train, X_test=X_test,
-          n_components=100, whiten=False):
+          n_components=100, whiten=False, scale=False):
     pca = PCA(n_components, whiten=whiten)
     pca.fit(X_train)
     X_train_pca = pca.transform(X_train)
     X_test_pca = pca.transform(X_test)
+    if scale:
+        X_train_pca, X_test_pca = scale_data(X_train_pca, X_test_pca)
     return X_train_pca, X_test_pca
 
 
@@ -482,8 +471,57 @@ def pca_X(X_train=X_train, X_test=X_test,
 # clf_scores(forest_clf, X_train_pca, y_train, "Forest with PCA (Whiten) and 190 components") # Recall = 0
 
 
-# Kernel approximation
+# Kernel approximatio
+from sklearn.kernel_approximation import RBFSampler, Nystroem
+def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
+           rbfsampler=True, n_components=100, scale=False):
+    if rbfsampler:
+        feature_map = RBFSampler(gamma=gamma, random_state=8,
+                                 n_components=n_components)
+    else:
+        feature_map = Nystroem(gamma=gamma, random_state=8,
+                               n_components=n_components)
+    X_train_mapped = feature_map.fit_transform(X_train)
+    X_test_mapped = feature_map.transform(X_test)
+    if scale:
+        X_train_mapped, X_test_mapped = scale_data(X_train_mapped, X_test_mapped)
+    return X_train_mapped, X_test_mapped
 
+# Create RBF kernel map of X and scale it
+X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=200,
+                                  rbfsampler=False, scale=True)
+
+# Test SGD classifier with RBF mapped features
+clf_scores(sgd_clf_1, X_train_rbf, y_train, "RBF kernel and SGD 1") # High variance
+# RBF kernel and SGD 1
+# Train Precision = 0.4004
+# Test Precision = 0.0670
+# Train Recall = 0.6667
+# Test Recall = 0.6662
+# Train F1 score = 0.1219
+# Test F1 score = 0.1218
+
+
+# Tuning SGD (RBF mapped features) hyper-parameters
+
+# Grid search for SGD classifiers with RBF mapping of features
+param_grid_sgd_rbf = {"loss": ["squared_hinge", "perceptron", "hinge", "log"], "alpha": [0.00001, 0.001, 0.01], "l1_ratio": [0.2, 0.5, 0.8]}
+
+_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf, "rbf", 2, X_train_rbf, y_train)
+# # No improvement seen
+
+param_grid_sgd_rbf_2 = {"loss": ["hinge"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_2, "rbf_hinge", 2, X_train_rbf, y_train)
+# # Nothing
+
+param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train_rbf, y_train)
+# Nothing
+
+clf_scores(sgd_clf_5, X_train_rbf, y_train, title="SGD log with rbf mapping")
+
+y_true, y_scores = predict_scores_sgd(X_train_rbf, y_train, sgd_clf_5)
+plot_precision_recall_curve(y_true, y_scores)
 
 
 
