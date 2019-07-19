@@ -121,19 +121,19 @@ def scale_R_data(X_train=X_train, X_test=X_test):
     return scaler_robust.transform(X_train), scaler_robust.transform(X_test)
 
 # Scale w/ robust X features
-X_train_scaled_R, X_test_scaled_R = scale_R_data()
+# X_train_scaled_R, X_test_scaled_R = scale_R_data()
 
 
 # Scale w/ robust reduced X features
-X_train_scaled_R_red, X_test_scaled_R_red = scale_R_data(X_train_red, X_test_red)
+# X_train_scaled_R_red, X_test_scaled_R_red = scale_R_data(X_train_red, X_test_red)
 
 
 # # Set classifiers
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 
-# sgd_clf = SGDClassifier(random_state=8)
-# forest_clf = RandomForestClassifier(random_state=8)
+sgd_clf = SGDClassifier(random_state=8)
+forest_clf = RandomForestClassifier(random_state=8)
 
 
 # Print cross-validate precision, recall and F1 score for classifier
@@ -406,13 +406,21 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         plt.ylabel("F1 score", fontsize=14)
         plt.show()
 
-# plot_SGD_learning_curve(2000, 20) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+# plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
 
 
+# High bias possible solution: Expand features with polynomial ones. Memory problem due sample size, oprion PCA reduction
+from sklearn.preprocessing import PolynomialFeatures
 
-
-
-
+# Expand X features with PolynomialFeatures
+def poly_expand(X_train=X_train_red, X_test=X_test_red, degree=2, scale=True):
+    poly = PolynomialFeatures(degree=degree)
+    poly.fit(X_train)
+    X_train_poly = poly.transform(X_train)
+    X_test_poly = poly.transform(X_test)
+    if scale:
+        X_train_poly, X_test_poly = scale_data(X_train_poly, X_test_poly)
+    return X_train_poly, X_test_poly
 
 
 # Dimension reduction using PCA
@@ -430,30 +438,30 @@ def pca_X(X_train=X_train, X_test=X_test,
     return X_train_pca, X_test_pca
 
 
-# Test SGD classifiers without whiten
-X_train_pca, X_test_pca = pca_X()
-X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
-clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA") # Worse recall
-
-
-# Test SGD classifiers with whiten
-X_train_pca, X_test_pca = pca_X(whiten=True)
-X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
-clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
-
-
-# Test SGD classifiers with whiten and more components
-X_train_pca, X_test_pca = pca_X(whiten=True, n_components=150)
-X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 150 components") # Almost equal to Tuned SGD w/ robust scaling
-
-
-# Test SGD classifiers with whiten and most components
-X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
-X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 190 components") # Almost equal to Tuned SGD w/ robust scaling
+# # Test SGD classifiers without whiten
+# X_train_pca, X_test_pca = pca_X()
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
+# clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (150 components)") # Worse recall
+#
+#
+# # Test SGD classifiers with whiten
+# X_train_pca, X_test_pca = pca_X(whiten=True)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+# clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+#
+#
+# # Test SGD classifiers with whiten and more components
+# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=150)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 150 components") # Almost equal to Tuned SGD w/ robust scaling
+#
+#
+# # Test SGD classifiers with whiten and most components
+# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
+# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+# clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 190 components") # Almost equal to Tuned SGD w/ robust scaling
 # # Tuned SGD with PCA (Whiten) and 190 components
 # # Train Precision = 0.5264
 # # Test Precision = 0.5280
@@ -463,12 +471,19 @@ clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and
 # # Test F1 score = 0.4636
 
 
-# Grid search for hinge loss (SVC) with robust scaling
-param_grid_sgd_hinge_rbf"" = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
-                                                     0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
-                                                     0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
-                        "l1_ratio": [0.2, 0.8]}
-_, sgd_gs_results_hinge_rbf = grid_search_sgd(param_grid_sgd_hinge_rbf, "hinge_rbf", 2, X_train_rbf, y_train) # Best: alpha = 0.000003, l1_ratio = 0.8
+# Combine PCA with Polynomial features. Test on reduced sets
+# X_train_pca, X_test_pca = pca_X(X_train_red, X_test_red, n_components=50, whiten=True)
+# X_train_poly, X_test_poly = poly_expand(X_train_pca, X_test_pca)
+
+# clf_scores(sgd_clf, X_train_poly, y_train_red, "PCA - Poly SGD")
+# clf_scores(sgd_clf_hinge, X_train_poly, y_train_red, "PCA - Poly SGD hinge") # Promising but memory problem with big sample size data
+# PCA - Poly SGD hinge
+# Train Precision = 0.4787
+# Test Precision = 0.2670
+# Train Recall = 0.1308
+# Test Recall = 0.0813
+# Train F1 score = 0.2054
+# Test F1 score = 0.1247
 
 
 # # Test forest classifiers with whiten and most components
@@ -479,6 +494,7 @@ _, sgd_gs_results_hinge_rbf = grid_search_sgd(param_grid_sgd_hinge_rbf, "hinge_r
 
 # Kernel approximatio
 from sklearn.kernel_approximation import RBFSampler, Nystroem
+
 def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
            rbfsampler=True, n_components=100, scale=False):
     if rbfsampler:
@@ -494,22 +510,34 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
     return X_train_mapped, X_test_mapped
 
 # Create RBF kernel map of X and scale it
-X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=200,
-                                  rbfsampler=False, scale=True)
+# X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=100,
+#                                   rbfsampler=False, scale=True)
 
-# # Test SGD classifier with RBF mapped features
-# clf_scores(sgd_clf_1, X_train_rbf, y_train, "RBF kernel and SGD 1") # High variance
-# # RBF kernel and SGD 1
-# # Train Precision = 0.4004
-# # Test Precision = 0.0670
-# # Train Recall = 0.6667
-# # Test Recall = 0.6662
-# # Train F1 score = 0.1219
-# # Test F1 score = 0.1218
+# Test SGD classifier with RBF mapped features
+# clf_scores(sgd_clf, X_train_rbf, y_train, "RBF kernel and default SGD") # High variance
+# clf_scores(sgd_clf_hinge, X_train_rbf, y_train, "RBF kernel and SGD hinge") # High variance
+# RBF kernel and SGD hinge
+# Train Precision = 1.0000
+# Test Precision = 0.0000
+# Train Recall = 0.0007
+# Test Recall = 0.0000
+# Train F1 score = 0.0013
+# Test F1 score = 0.0000
 
 
-# # Tuning SGD (RBF mapped features) hyper-parameters
+# Tuning SGD (RBF mapped features) hyper-parameters
+
+# Grid search for hinge loss (SVC)
+# param_grid_sgd_rbf_hinge = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
+#                                                      0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
+#                                                      0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                         "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_rbf_hinge = grid_search_sgd(param_grid_sgd_rbf_hinge, "rbf_hinge", 2, X_train_rbf, y_train) # Best: very small alpha
 #
+# param_grid_sgd_rbf_hinge = {"loss": ["hinge"], "alpha": [0.000000001, 0.00000001, 0.0000001], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_rbf_hinge = grid_search_sgd(param_grid_sgd_rbf_hinge, "rbf_hinge_2", 2, X_train_rbf, y_train) # Same terrible performance
+
+
 # # Grid search for SGD classifiers with RBF mapping of features
 # param_grid_sgd_rbf = {"loss": ["squared_hinge", "perceptron", "hinge", "log"], "alpha": [0.00001, 0.001, 0.01], "l1_ratio": [0.2, 0.5, 0.8]}
 #
@@ -543,17 +571,17 @@ X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=200,
 
 from sklearn.base import clone
 
-
-def test_scoring(clf, name=None):
+def test_scoring(clf, X_train=X_train_scaled, X_test=X_test_scaled,
+                 y_train=y_train, y_test=y_test, name=None):
     if name:
         print(name)
 
     clf_test = clone(clf)
-    clf_test.fit(X_train_scaled, y_train)
+    clf_test.fit(X_train, y_train)
     # clf_test.fit(X_train_scaled, y_train.ravel())
 
-    y_train_predict = clf_test.predict(X_train_scaled)
-    y_test_predict = clf_test.predict(X_test_scaled)
+    y_train_predict = clf_test.predict(X_train)
+    y_test_predict = clf_test.predict(X_test)
 
     train_precision = precision_score(y_train, y_train_predict)
     test_precision = precision_score(y_test, y_test_predict)
@@ -570,9 +598,6 @@ def test_scoring(clf, name=None):
     print("Train F1: ", train_f1)
     print("Test F1: ", test_f1)
 
+
 # test_scoring(sgd_clf_hinge, "SGD Hinge")
-
-sgd_clf_dummy = clone(sgd_clf_hinge)
-sgd_clf_dummy.max_iter = 1000
-
-test_scoring(sgd_clf_dummy, "max_iter = 1000")
+# test_scoring(sgd_clf_hinge, X_train_rbf, X_test_rbf, y_train, y_test, "RBF")
