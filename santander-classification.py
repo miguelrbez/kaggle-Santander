@@ -219,8 +219,7 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
 # Compute y scores (y_proba) for classifiers
 from sklearn.model_selection import cross_val_predict
 
-def predict_scores_sgd(X=X_train_scaled, y_true=y_train,
-                       sgd_clf=SGDClassifier(random_state=8)):
+def predict_scores_sgd(sgd_clf=SGDClassifier(random_state=8), X=X_train_scaled, y_true=y_train):
     y_scores_sgd = cross_val_predict(sgd_clf, X, y_true,
                                      cv=3, method='decision_function')
     return y_true, y_scores_sgd
@@ -279,14 +278,6 @@ def hyper_parameter_tuning(clf, param_grid, scoring, df_path, cv=3, refit_parame
 
 # Tuning SGD hyper-parameters
 
-# param_grid_sgd = [{"loss": ["squared_hinge"], "alpha": [0.001], "l1_ratio": [0.4, 0.6, 0.9]},
-#                   {"loss": ["squared_hinge"], "alpha": [0.01, 0.03, 0.1, 0.3], "l1_ratio": [0.4, 0.6]},
-#                   {"loss": ["perceptron"], "alpha": [0.0008, 0.002], "l1_ratio": [0.7, 0.9]},
-#                   {"loss": ["perceptron"], "alpha": [0.008, 0.02], "l1_ratio": [0.1, 0.3]},
-#                   {"loss": ["hinge"], "alpha": [0.008, 0.02], "l1_ratio": [0.2, 0.4]},
-#                   {"loss": ["log"], "alpha": [0.001], "l1_ratio": [0.4, 0.6]},
-#                   {"loss": ["log"], "alpha": [0.01], "l1_ratio": [0.2, 0.4]}]
-
 # Grid search for SGD classifier
 def grid_search_sgd(param_grid, name, cv=3, X=X_train_scaled, y=y_train):
     sgd_clf = SGDClassifier(random_state=8, penalty='elasticnet')
@@ -294,76 +285,82 @@ def grid_search_sgd(param_grid, name, cv=3, X=X_train_scaled, y=y_train):
     df_path = "./GridSearch dataframes/SGD_" + name + ".csv"
     return hyper_parameter_tuning(sgd_clf, param_grid, scoring, df_path, cv=cv, refit_parameter="precision", X=X, y=y)
 
-_, sgd_gs_results = grid_search_sgd(param_grid_sgd, name="", cv=3)
 
-# Coarse grid search and oobservations
-# _, sgd_gs_results_4 = grid_search_sgd(2, X_train_scaled_red, y_train_red)
-# 1 search: (alpha: best=0.1, discard:1)
-# 2 search: (alpha: discard:0.1)
-#           (loss: best recall/F1:"squared_hinge" w/ alpha=0.01,0.1,
-#           best precision:"hinge","log" w/ alpha=0.01 w/ low l1)
-# 3 search: (alpha: 0.1 only for "squared_hinge"),
-#           ("squared_hinge": alpha=0.001 w/ high l1 alpha),
-#           ("hinge": discard alpha=0.001, best l1=0.3),
-#           ("perceptron": low alpha w/ high l1),
-#           ("log": low alpha w/ high l1, high alpha w/low l1)
-# 4 search: similar results
+# # Grid search for hinge loss (SVC)
+# param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
+#
+# param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
+# _, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
+sgd_clf_hinge = SGDClassifier(random_state=8, alpha=0.001, l1_ratio=0.9)
+# Precision = 0.59, Recall = 0.37, F1 score = 0.46
 
 
-# Grid search for hinge
-param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01], "l1_ratio": [0.2, 0.8]} # Bigger than 0.01 don't work
-_, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge", 2, X_train, y_train)
-# # Nothing
+# # Grid search for log loss (Logistic regression)
+# param_grid_sgd_log = {"loss": ["log"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_log = grid_search_sgd(param_grid_sgd_log, "log", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
+#
+# param_grid_sgd_log = {"loss": ["log"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
+# _, sgd_gs_results_log = grid_search_sgd(param_grid_sgd_log, "log_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
+sgd_clf_log = SGDClassifier(random_state=8, alpha=0.001, l1_ratio=0.9)
+# Precision = 0.58, Recall = 0.38, F1 score = 0.46
 
-# param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train, y_train)
+
+# # Grid search for squared hinge loss
+# param_grid_sgd_squared_hinge = {"loss": ["squared_hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_squared_hinge = grid_search_sgd(param_grid_sgd_squared_hinge, "squared_hinge", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
+#
+# param_grid_sgd_squared_hinge = {"loss": ["squared_hinge"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
+# _, sgd_gs_results_squared_hinge = grid_search_sgd(param_grid_sgd_squared_hinge, "squared_hinge_2", 2, X_train_scaled, y_train) # Best: alpha = 0.0005, l1_ratio = 0.9
+sgd_clf_squared_hinge = SGDClassifier(random_state=8, alpha=0.0005, l1_ratio=0.9)
+# Precision = 0.56, Recall = 0.40, F1 score = 0.41
 
 
-# Chosen classifiers:
-sgd_clf_1 = SGDClassifier(random_state=8, penalty='elasticnet', loss="squared_hinge",
-                          alpha=0.01, l1_ratio=0.4)
-sgd_clf_2 = SGDClassifier(random_state=8, penalty='elasticnet', loss="perceptron",
-                          alpha=0.002, l1_ratio=0.7)
-sgd_clf_3 = SGDClassifier(random_state=8, penalty='elasticnet', loss="hinge",
-                          alpha=0.01, l1_ratio=0.3)
-sgd_clf_4 = SGDClassifier(random_state=8, penalty='elasticnet', loss="log",
-                          alpha=0.001, l1_ratio=0.6)
+# # Grid search for perceptron loss
+# param_grid_sgd_perceptron = {"loss": ["perceptron"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_perceptron= grid_search_sgd(param_grid_sgd_perceptron, "perceptron", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
+#
+# param_grid_sgd_perceptron = {"loss": ["perceptron"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
+# _, sgd_gs_results_perceptron = grid_search_sgd(param_grid_sgd_perceptron, "perceptron_2", 2, X_train_scaled, y_train) # Best: alpha = 0.0005, l1_ratio = 0.9
+sgd_clf_perceptron = SGDClassifier(random_state=8, alpha=0.0005, l1_ratio=0.9)
+# Precision = 0.56, Recall = 0.38, F1 score = 0.46
+
+
+# # Grid search for modified_huber loss
+# param_grid_sgd_modified_huber = {"loss": ["modified_huber"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_modified_huber= grid_search_sgd(param_grid_sgd_modified_huber, "modified_huber", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
+#
+# param_grid_sgd_modified_huber = {"loss": ["modified_huber"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
+# _, sgd_gs_results_modified_huber = grid_search_sgd(param_grid_sgd_modified_huber, "modified_huber_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
+sgd_clf_modified_huber = SGDClassifier(random_state=8, alpha=0.0001, l1_ratio=0.9)
+# Precision = 0.58, Recall = 0.39, F1 score = 0.46
+
+# Tuned SGD classifiers improved from default SGD around: Precision: 42%, Recall: 24%, F1 score: 32%
 
 
 # Predict reduced y_scores and plot precision-recall curve for SGD classifiers
-# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_1, X_train_scaled_red, y_train_red)
-# plot_precision_recall_curve(y_true, y_scores_sgd, "SGD 1")
+
+# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_hinge, X_train_scaled, y_train)
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Hinge")
 #
-# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_2, X_train_scaled_red, y_train_red)
-# plot_precision_recall_curve(y_true, y_scores_sgd, "SGD 2")
+# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_log, X_train_scaled, y_train)
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Log")
 #
-# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_3, X_train_scaled_red, y_train_red)
-# plot_precision_recall_curve(y_true, y_scores_sgd, "SGD 3")
+# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_squared_hinge, X_train_scaled, y_train)
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Squared hinge")
 #
-# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_4, X_train_scaled_red, y_train_red)
-# plot_precision_recall_curve(y_true, y_scores_sgd, "SGD 4")
+# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_perceptron, X_train_scaled, y_train)
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Perceptron")
+#
+# y_true, y_scores_sgd = predict_scores_sgd(sgd_clf_modified_huber, X_train_scaled, y_train)
+# plot_precision_recall_curve(y_true, y_scores_sgd, "Modified huber")
+
+# Very similar behaviour. Not good precision/recall
 
 
-# Very similar behaviour. SGD 1 and 2 are more stable over threshold, SGD 2 is selected as the best SGD classifier
-# sgd_clf_scores = clf_scores(sgd_clf_2, title="Tunned SGD classifier")
-# Tunned SGD classifier
-# Train Precision = 0.5860
-# Test Precision = 0.5790   -> Improved 42.7% from default SGD classifier
-# Train Recall = 0.3722
-# Test Recall = 0.3673      -> Improved 24.1% from default SGD classifier
-# Train F1 score = 0.4552
-# Test F1 score = 0.4494    -> Improved 32.1% from default SGD classifier
-
-
-# # Tested tuned SGD classifier with robust scaling
-# sgd_clf_scores = clf_scores(sgd_clf_1, X_train_scaled_R, y_train, title="Tunned SGD classifier (Robust scaled)")
-# # Tunned SGD classifier 1 (Robust scaled)
-# # Train Precision = 0.5041
-# # Test Precision = 0.5049
-# # Train Recall = 0.4603
-# # Test Recall = 0.4627
-# # Train F1 score = 0.4812
-# # Test F1 score = 0.4829
+# Grid search for squared hinge loss with robust scaling
+param_grid_sgd_squared_hinge_robust = {"loss": ["squared_hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+_, sgd_gs_results_squared_hinge_robust = grid_search_sgd(param_grid_sgd_squared_hinge_robust, "squared_hinge_robust", 2, X_train_scaled_R, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 
 
 # # Grid search for SGD classifier with robust scaling
