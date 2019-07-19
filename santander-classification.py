@@ -51,7 +51,7 @@ def hist_mean_values(X=X):
     plt.hist(features_mean_values)
     plt.show()
 
-hist_mean_values(X)
+# hist_mean_values(X)
 
 # The features mean values has a Gaussian shape, maybe some features are correlated
 
@@ -63,7 +63,7 @@ def hist_std_values(X=X):
     plt.hist(features_std_values)
     plt.show()
 
-hist_std_values(X)
+# hist_std_values(X)
 
 # The features std values are mostly close to 0, this could lead to the correlation hypothesis
 
@@ -85,7 +85,7 @@ def plot_four_features(X_four_features):
             plt.xlabel('Sample')
     plt.show()
 
-plot_four_features(select_highest_std_features(X))
+# plot_four_features(select_highest_std_features(X))
 
 
 # Scale features
@@ -132,8 +132,8 @@ X_train_scaled_R_red, X_test_scaled_R_red = scale_R_data(X_train_red, X_test_red
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 
-sgd_clf = SGDClassifier(random_state=8)
-forest_clf = RandomForestClassifier(random_state=8)
+# sgd_clf = SGDClassifier(random_state=8)
+# forest_clf = RandomForestClassifier(random_state=8)
 
 
 # Print cross-validate precision, recall and F1 score for classifier
@@ -160,18 +160,8 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
     return scores
 
 
-# Scores for SGD classifier using reduced and not-reduced X_train and standar/robust scaler
+# Scores for SGD classifier using standard/robust scaling
 
-# sgd_clf_scores = clf_scores(sgd_clf, X_train_scaled_red, y_train_red, title="SGD (reduced)")
-# # SGD (reduced)
-# # Train Precision = 0.3882
-# # Test Precision = 0.3869
-# # Train Recall = 0.3332
-# # Test Recall = 0.3364
-# # Train F1 score = 0.3584
-# # Test F1 score = 0.3594
-# # High bias
-#
 # sgd_clf_scores = clf_scores(sgd_clf, title="SGD (not-reduced)")
 # # SGD (not-reduced)
 # # Train Precision = 0.4187
@@ -193,17 +183,7 @@ def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
 # # High bias
 
 
-# Scores for random forest classifier using reduced and not-reduced X_train
-
-# forest_clf_scores = clf_scores(forest_clf, X_train_scaled_red, y_train_red, title="Forest (reduced)")
-# # Forest (reduced)
-# # Train Precision = 0.9999
-# # Test Precision = 0.5301
-# # Train Recall = 0.8446
-# # Test Recall = 0.0129
-# # Train F1 score = 0.9157
-# # Test F1 score = 0.0253
-# # High variance
+# Scores for random forest classifier
 
 # forest_clf_scores = clf_scores(forest_clf, title="Forest (not-reduced)")
 # # Forest (not-reduced)
@@ -287,52 +267,67 @@ def grid_search_sgd(param_grid, name, cv=3, X=X_train_scaled, y=y_train):
 
 
 # # Grid search for hinge loss (SVC)
-# param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
+#                                                      0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
+#                                                      0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                         "l1_ratio": [0.2, 0.8]}
 # _, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 #
 # param_grid_sgd_hinge = {"loss": ["hinge"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
 # _, sgd_gs_results_hinge = grid_search_sgd(param_grid_sgd_hinge, "hinge_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
-sgd_clf_hinge = SGDClassifier(random_state=8, alpha=0.001, l1_ratio=0.9)
+sgd_clf_hinge = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.001, l1_ratio=0.9)
 # Precision = 0.59, Recall = 0.37, F1 score = 0.46
 
 
 # # Grid search for log loss (Logistic regression)
-# param_grid_sgd_log = {"loss": ["log"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# param_grid_sgd_log = {"loss": ["log"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
+#                                                  0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
+#                                                  0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                       "l1_ratio": [0.2, 0.8]}
 # _, sgd_gs_results_log = grid_search_sgd(param_grid_sgd_log, "log", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 #
 # param_grid_sgd_log = {"loss": ["log"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
 # _, sgd_gs_results_log = grid_search_sgd(param_grid_sgd_log, "log_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
-sgd_clf_log = SGDClassifier(random_state=8, alpha=0.001, l1_ratio=0.9)
+sgd_clf_log = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.001, l1_ratio=0.9)
 # Precision = 0.58, Recall = 0.38, F1 score = 0.46
 
 
 # # Grid search for squared hinge loss
-# param_grid_sgd_squared_hinge = {"loss": ["squared_hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# param_grid_sgd_squared_hinge = {"loss": ["squared_hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003,
+#                                                                      0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003,
+#                                                                      0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                                 "l1_ratio": [0.2, 0.8]}
 # _, sgd_gs_results_squared_hinge = grid_search_sgd(param_grid_sgd_squared_hinge, "squared_hinge", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 #
 # param_grid_sgd_squared_hinge = {"loss": ["squared_hinge"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
 # _, sgd_gs_results_squared_hinge = grid_search_sgd(param_grid_sgd_squared_hinge, "squared_hinge_2", 2, X_train_scaled, y_train) # Best: alpha = 0.0005, l1_ratio = 0.9
-sgd_clf_squared_hinge = SGDClassifier(random_state=8, alpha=0.0005, l1_ratio=0.9)
+sgd_clf_squared_hinge = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.0005, l1_ratio=0.9)
 # Precision = 0.56, Recall = 0.40, F1 score = 0.41
 
 
 # # Grid search for perceptron loss
-# param_grid_sgd_perceptron = {"loss": ["perceptron"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# param_grid_sgd_perceptron = {"loss": ["perceptron"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003,
+#                                                                0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003,
+#                                                                0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                              "l1_ratio": [0.2, 0.8]}
 # _, sgd_gs_results_perceptron= grid_search_sgd(param_grid_sgd_perceptron, "perceptron", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 #
 # param_grid_sgd_perceptron = {"loss": ["perceptron"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
 # _, sgd_gs_results_perceptron = grid_search_sgd(param_grid_sgd_perceptron, "perceptron_2", 2, X_train_scaled, y_train) # Best: alpha = 0.0005, l1_ratio = 0.9
-sgd_clf_perceptron = SGDClassifier(random_state=8, alpha=0.0005, l1_ratio=0.9)
+sgd_clf_perceptron = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.0005, l1_ratio=0.9)
 # Precision = 0.56, Recall = 0.38, F1 score = 0.46
 
 
 # # Grid search for modified_huber loss
-# param_grid_sgd_modified_huber = {"loss": ["modified_huber"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# param_grid_sgd_modified_huber = {"loss": ["modified_huber"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003,
+#                                                                        0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003,
+#                                                                        0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                                  "l1_ratio": [0.2, 0.8]}
 # _, sgd_gs_results_modified_huber= grid_search_sgd(param_grid_sgd_modified_huber, "modified_huber", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
 #
 # param_grid_sgd_modified_huber = {"loss": ["modified_huber"], "alpha": [0.0005, 0.001, 0.002], "l1_ratio": [0.6, 0.8, 0.9]}
 # _, sgd_gs_results_modified_huber = grid_search_sgd(param_grid_sgd_modified_huber, "modified_huber_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
-sgd_clf_modified_huber = SGDClassifier(random_state=8, alpha=0.0001, l1_ratio=0.9)
+sgd_clf_modified_huber = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.0001, l1_ratio=0.9)
 # Precision = 0.58, Recall = 0.39, F1 score = 0.46
 
 # Tuned SGD classifiers improved from default SGD around: Precision: 42%, Recall: 24%, F1 score: 32%
@@ -358,21 +353,19 @@ sgd_clf_modified_huber = SGDClassifier(random_state=8, alpha=0.0001, l1_ratio=0.
 # Very similar behaviour. Not good precision/recall
 
 
-# Grid search for squared hinge loss with robust scaling
-param_grid_sgd_squared_hinge_robust = {"loss": ["squared_hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003, 0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-_, sgd_gs_results_squared_hinge_robust = grid_search_sgd(param_grid_sgd_squared_hinge_robust, "squared_hinge_robust", 2, X_train_scaled_R, y_train) # Best: alpha = 0.001, l1_ratio = 0.8
-
-
-# # Grid search for SGD classifier with robust scaling
-param_grid_sgd_robust = [{"loss": ["squared_hinge"], "alpha": [0.001], "l1_ratio": [0.4, 0.6, 0.9]},
-                         {"loss": ["squared_hinge"], "alpha": [0.01, 0.03, 0.1, 0.3], "l1_ratio": [0.4, 0.6]}]
-
-_, sgd_gs_results_robust = grid_search_sgd(param_grid_sgd_robust, "robust", 2, X_train_scaled_R, y_train)
-# # Same results as with standard scaling
+# # Grid search for hinge loss (SVC) with robust scaling
+# param_grid_sgd_hinge_robust = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
+#                                                      0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
+#                                                      0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+#                         "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_hinge_robust = grid_search_sgd(param_grid_sgd_hinge_robust, "hinge_robust", 2, X_train_scaled_R, y_train) # Best: alpha = 0.000003, l1_ratio = 0.8
+# Worse than standard scaling. Precision = 0.38, Recall = 0.31, F1 score = 0.34
 
 
 # Plot learning curves of SGD classifier
 from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 
 def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
     if max_iter_sgd > max_epochs:
@@ -384,8 +377,8 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
                                                                                   stratify=y_train_red)
 
         # Classifier with fixed max_iter to check F1 score over epochs
-        sgd_clf_step = SGDClassifier(max_iter=max_iter_sgd, random_state=8, penalty='elasticnet', loss="squared_hinge",
-                                     alpha=0.01, l1_ratio=0.4, warm_start=True, tol=-np.infty)
+        sgd_clf_step = SGDClassifier(max_iter=max_iter_sgd, random_state=8, penalty='elasticnet', loss="hinge",
+                                     alpha=0.001, l1_ratio=0.9, warm_start=True, tol=-np.infty)
 
         # Create arrays of F1 scores over epochs
         n_epochs = int(max_epochs/max_iter_sgd)
@@ -393,6 +386,7 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         val_scores_array = np.empty(n_epochs)
 
         for epoch in range(n_epochs):
+            # print(int((epoch+1) * max_iter_sgd))
             # random_ix = np.random.permutation(len(y_train_learn))
             # sgd_clf_step.fit(X_train_learn[random_ix,:], y_train_learn.ravel()[random_ix])
             sgd_clf_step.fit(X_train_learn, y_train_learn.ravel())
@@ -404,6 +398,7 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
             val_scores_array[epoch] = val_score
 
         # Plot train and validation learning curves
+        plt.figure()
         plt.plot(val_scores_array, "b-", linewidth=3, label="Validation set")
         plt.plot(train_scores_array, "r--", linewidth=2, label="Training set")
         plt.legend(loc="upper right", fontsize=14)
@@ -411,7 +406,13 @@ def plot_SGD_learning_curve(max_epochs=1000, max_iter_sgd=100):
         plt.ylabel("F1 score", fontsize=14)
         plt.show()
 
-# plot_SGD_learning_curve(100, 10) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+# plot_SGD_learning_curve(2000, 20) # After around 40 epochs, the SGD classifier converges. No need to tune learning rate
+
+
+
+
+
+
 
 
 # Dimension reduction using PCA
@@ -419,7 +420,7 @@ from sklearn.decomposition import PCA
 
 # Returns X_train and X_test with n_components features after PCA
 def pca_X(X_train=X_train, X_test=X_test,
-          n_components=100, whiten=False, scale=False):
+          n_components=150, whiten=False, scale=False):
     pca = PCA(n_components, whiten=whiten)
     pca.fit(X_train)
     X_train_pca = pca.transform(X_train)
@@ -429,30 +430,30 @@ def pca_X(X_train=X_train, X_test=X_test,
     return X_train_pca, X_test_pca
 
 
-# # # Test SGD classifiers without whiten
-# X_train_pca, X_test_pca = pca_X()
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
-# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA") # Worse recall
-#
-#
-# # Test SGD classifiers with whiten
-# X_train_pca, X_test_pca = pca_X(whiten=True)
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-# clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
-# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
-#
-#
-# # Test SGD classifiers with whiten and more components
-# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=150)
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 150 components") # Almost equal to Tuned SGD w/ robust scaling
-#
-#
-# # Test SGD classifiers with whiten and most components
-# X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
-# clf_scores(sgd_clf_1, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 190 components") # Almost equal to Tuned SGD w/ robust scaling
+# Test SGD classifiers without whiten
+X_train_pca, X_test_pca = pca_X()
+X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
+clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA") # Worse recall
+
+
+# Test SGD classifiers with whiten
+X_train_pca, X_test_pca = pca_X(whiten=True)
+X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
+
+
+# Test SGD classifiers with whiten and more components
+X_train_pca, X_test_pca = pca_X(whiten=True, n_components=150)
+X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 150 components") # Almost equal to Tuned SGD w/ robust scaling
+
+
+# Test SGD classifiers with whiten and most components
+X_train_pca, X_test_pca = pca_X(whiten=True, n_components=190)
+X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
+clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten) and 190 components") # Almost equal to Tuned SGD w/ robust scaling
 # # Tuned SGD with PCA (Whiten) and 190 components
 # # Train Precision = 0.5264
 # # Test Precision = 0.5280
@@ -460,6 +461,14 @@ def pca_X(X_train=X_train, X_test=X_test,
 # # Test Recall = 0.4135
 # # Train F1 score = 0.4627
 # # Test F1 score = 0.4636
+
+
+# Grid search for hinge loss (SVC) with robust scaling
+param_grid_sgd_hinge_rbf"" = {"loss": ["hinge"], "alpha": [0.0000001, 0.0000003, 0.000001, 0.000003, 0.00001, 0.00003,
+                                                     0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03,
+                                                     0.1, 0.3, 1, 3, 10, 30, 100, 300, 1000],
+                        "l1_ratio": [0.2, 0.8]}
+_, sgd_gs_results_hinge_rbf = grid_search_sgd(param_grid_sgd_hinge_rbf, "hinge_rbf", 2, X_train_rbf, y_train) # Best: alpha = 0.000003, l1_ratio = 0.8
 
 
 # # Test forest classifiers with whiten and most components
@@ -488,40 +497,82 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
 X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=200,
                                   rbfsampler=False, scale=True)
 
-# Test SGD classifier with RBF mapped features
-clf_scores(sgd_clf_1, X_train_rbf, y_train, "RBF kernel and SGD 1") # High variance
-# RBF kernel and SGD 1
-# Train Precision = 0.4004
-# Test Precision = 0.0670
-# Train Recall = 0.6667
-# Test Recall = 0.6662
-# Train F1 score = 0.1219
-# Test F1 score = 0.1218
+# # Test SGD classifier with RBF mapped features
+# clf_scores(sgd_clf_1, X_train_rbf, y_train, "RBF kernel and SGD 1") # High variance
+# # RBF kernel and SGD 1
+# # Train Precision = 0.4004
+# # Test Precision = 0.0670
+# # Train Recall = 0.6667
+# # Test Recall = 0.6662
+# # Train F1 score = 0.1219
+# # Test F1 score = 0.1218
 
 
-# Tuning SGD (RBF mapped features) hyper-parameters
-
-# Grid search for SGD classifiers with RBF mapping of features
-param_grid_sgd_rbf = {"loss": ["squared_hinge", "perceptron", "hinge", "log"], "alpha": [0.00001, 0.001, 0.01], "l1_ratio": [0.2, 0.5, 0.8]}
-
-_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf, "rbf", 2, X_train_rbf, y_train)
-# # No improvement seen
-
-param_grid_sgd_rbf_2 = {"loss": ["hinge"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_2, "rbf_hinge", 2, X_train_rbf, y_train)
+# # Tuning SGD (RBF mapped features) hyper-parameters
+#
+# # Grid search for SGD classifiers with RBF mapping of features
+# param_grid_sgd_rbf = {"loss": ["squared_hinge", "perceptron", "hinge", "log"], "alpha": [0.00001, 0.001, 0.01], "l1_ratio": [0.2, 0.5, 0.8]}
+#
+# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf, "rbf", 2, X_train_rbf, y_train)
+# # # No improvement seen
+#
+# param_grid_sgd_rbf_2 = {"loss": ["hinge"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_2, "rbf_hinge", 2, X_train_rbf, y_train)
+# # # Nothing
+#
+# param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
+# _, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train_rbf, y_train)
 # # Nothing
+#
+# clf_scores(sgd_clf_5, X_train_rbf, y_train, title="SGD log with rbf mapping")
+#
+# y_true, y_scores = predict_scores_sgd(X_train_rbf, y_train, sgd_clf_5)
+# plot_precision_recall_curve(y_true, y_scores)
 
-param_grid_sgd_rbf_3 = {"loss": ["squared_hinge", "perceptron"], "alpha": [0.01, 30, 100, 300, 1000], "l1_ratio": [0.2, 0.8]}
-_, sgd_gs_results_rbf = grid_search_sgd(param_grid_sgd_rbf_3, "rbf_hinge_2", 2, X_train_rbf, y_train)
-# Nothing
 
-clf_scores(sgd_clf_5, X_train_rbf, y_train, title="SGD log with rbf mapping")
 
-y_true, y_scores = predict_scores_sgd(X_train_rbf, y_train, sgd_clf_5)
-plot_precision_recall_curve(y_true, y_scores)
 
 
 
 
 
 # Tuning forest hyper-parameters
+
+
+# Test classifiers on X_train and X_test
+
+from sklearn.base import clone
+
+
+def test_scoring(clf, name=None):
+    if name:
+        print(name)
+
+    clf_test = clone(clf)
+    clf_test.fit(X_train_scaled, y_train)
+    # clf_test.fit(X_train_scaled, y_train.ravel())
+
+    y_train_predict = clf_test.predict(X_train_scaled)
+    y_test_predict = clf_test.predict(X_test_scaled)
+
+    train_precision = precision_score(y_train, y_train_predict)
+    test_precision = precision_score(y_test, y_test_predict)
+    print("Train Precision: ", train_precision)
+    print("Test Precision: ", test_precision)
+
+    train_recall = recall_score(y_train, y_train_predict)
+    test_recall = recall_score(y_test, y_test_predict)
+    print("Train Recall: ", train_recall)
+    print("Test Recall: ", test_recall)
+
+    train_f1 = f1_score(y_train, y_train_predict)
+    test_f1 = f1_score(y_test, y_test_predict)
+    print("Train F1: ", train_f1)
+    print("Test F1: ", test_f1)
+
+# test_scoring(sgd_clf_hinge, "SGD Hinge")
+
+sgd_clf_dummy = clone(sgd_clf_hinge)
+sgd_clf_dummy.max_iter = 1000
+
+test_scoring(sgd_clf_dummy, "max_iter = 1000")
