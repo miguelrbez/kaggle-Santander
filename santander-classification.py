@@ -423,7 +423,7 @@ def plot_learning_curve(clf, X, y, train_sizes_n=10, scoring="f1", name=None):
     plt.plot(train_sizes, train_scores_mean, 'o-', color="r", label="Train score")
     plt.plot(train_sizes, val_scores_mean, 'o-', color="b", label="Validation score")
     plt.legend()
-    plt.ylim([0, 1])
+    plt.ylim([0, 1.1])
     plt.xlabel("Training examples")
     plt.ylabel(scoring)
     if name:
@@ -432,9 +432,7 @@ def plot_learning_curve(clf, X, y, train_sizes_n=10, scoring="f1", name=None):
 
 
 # SGD hinge learning curve for F1 score
-plot_learning_curve(sgd_clf_hinge, X_train_scaled_red, y_train_red, train_sizes_n=10, name="Reduced set - SGD hinge") # High bias
-
-
+# plot_learning_curve(sgd_clf_hinge, X_train_scaled_red, y_train_red, train_sizes_n=10, name="Reduced set - SGD hinge") # High bias
 
 
 # High bias possible solution: Expand features with polynomial ones. Memory problem due sample size, oprion PCA reduction
@@ -456,7 +454,7 @@ from sklearn.decomposition import PCA
 
 # Returns X_train and X_test with n_components features after PCA
 def pca_X(X_train=X_train, X_test=X_test,
-          n_components=150, whiten=False, scale=False):
+          n_components=150, whiten=False, scale=True):
     pca = PCA(n_components, whiten=whiten)
     pca.fit(X_train)
     X_train_pca = pca.transform(X_train)
@@ -468,14 +466,12 @@ def pca_X(X_train=X_train, X_test=X_test,
 
 # # Test SGD classifiers without whiten
 # X_train_pca, X_test_pca = pca_X()
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
 # clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA") # Worse recall
 # clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (150 components)") # Worse recall
 #
 #
 # # Test SGD classifiers with whiten
 # X_train_pca, X_test_pca = pca_X(whiten=True)
-# X_train_pca_scaled, _ = scale_data(X_train_pca, X_test_pca)
 # clf_scores(sgd_clf, X_train_pca, y_train, "SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
 # clf_scores(sgd_clf_hinge, X_train_pca, y_train, "Tuned SGD with PCA (Whiten)") # Worse precision, slight improvement the other against no whiten
 #
@@ -556,6 +552,89 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
 
 
 # Tuning forest hyper-parameters
+# plot_learning_curve(forest_clf, X_train_scaled, y_train, train_sizes_n=5, name="Reduced set - Random forest", scoring="precision"), # High variance
+
+
+# Grid search function for Random forest classifier
+def grid_search_forest(param_grid, name, cv=2, X=X_train_scaled_red, y=y_train_red):
+    forest_clf = RandomForestClassifier(random_state=8)
+    scoring = ["precision", "recall", "f1"]
+    df_path = "./GridSearch dataframes/forest_" + name + ".csv"
+    return hyper_parameter_tuning(forest_clf, param_grid, scoring, df_path, cv=cv, refit_parameter="precision", X=X, y=y)
+
+
+# # Grid search for n_estimators
+# param_grid_forest_trees = {"n_estimators": [3, 10, 30, 100]}
+# _, gs_results_forest_trees = grid_search_forest(param_grid_forest_trees, "trees", 2, X_train_scaled_red, y_train_red) # Best: n_estimators 3, 10
+#
+# param_grid_forest_trees = {"n_estimators": [5, 7]}
+# _, gs_results_forest_trees = grid_search_forest(param_grid_forest_trees, "trees_2", 2, X_train_scaled_red, y_train_red) # Best:
+#
+# # Grid search for max_depth
+# param_grid_forest_max_depth = {"max_depth": [3, 10, 30, None]}
+# _, gs_results_forest_max_depth = grid_search_forest(param_grid_forest_max_depth, "max_depth", 2, X_train_scaled_red, y_train_red) # Best: max_depth 30
+#
+# param_grid_forest_max_depth = {"max_depth": [15, 60, 70, 80]} # Best: 40, 50
+# _, gs_results_forest_max_depth = grid_search_forest(param_grid_forest_max_depth, "max_depth_3", 2, X_train_scaled_red, y_train_red) # Best: max_depth 30
+#
+# # Grid search for max_features
+# param_grid_forest_max_features = {"max_features": [5, 15, 50, 100, 200]}
+# _, gs_results_forest_max_features = grid_search_forest(param_grid_forest_max_features, "max_features", 2, X_train_scaled_red, y_train_red) # Too much memory
+
+# Grid search for max_leaf_nodes
+# param_grid_forest_max_leaf_nodes = {"max_leaf_nodes": [125, 140, 160, 180, 210]}
+# _, gs_results_forest_max_leaf_nodes = grid_search_forest(param_grid_forest_max_leaf_nodes, "max_leaf_nodes_2", 2, X_train_red, y_train_red) # Best: 150 0.75 Precision - 210 0.77 Precision
+#
+# # Grid search for
+# param_grid_forest_ = {"": []}
+# _, gs_results_forest_ = grid_search_forest(param_grid_forest_, "", 2, X_train_scaled_red, y_train_red) # Best:
+
+
+
+# forest_clf_tuned = RandomForestClassifier(random_state=8, n_estimators=5, max_depth=35, max_leaf_nodes=210)
+# clf_scores(forest_clf_tuned, X_train_red, y_train_red, title="Tuned forest")
+# # Tuned forest
+# # Train Precision = 0.9916
+# # Test Precision = 0.4644
+# # Train Recall = 0.1031
+# # Test Recall = 0.0077
+# # Train F1 score = 0.1868
+# # Test F1 score = 0.0152
+
+
+# PCA reduction and testing with forest
+# X_train_pca_1, X_test_pca_1 = pca_X(X_train_red, X_test_red, n_components=150, whiten=False, scale=False)
+#
+# X_train_pca_2, X_test_pca_2 = pca_X(X_train_red, X_test_red, n_components=150, whiten=True, scale=False)
+#
+# X_train_pca_3, X_test_pca_3 = pca_X(X_train_red, X_test_red, n_components=100, whiten=False, scale=False)
+#
+# X_train_pca_4, X_test_pca_4 = pca_X(X_train_red, X_test_red, n_components=100, whiten=True, scale=False)
+#
+#
+# clf_scores(forest_clf, X_train_pca_1, y_train_red, title="Random forest with pca_1") # Test Precision = 0.4520
+# clf_scores(forest_clf, X_train_pca_2, y_train_red, title="Random forest with pca_2") # Test Precision = 0.4651
+# clf_scores(forest_clf, X_train_pca_3, y_train_red, title="Random forest with pca_3") # The other two very bad for the 4 cases
+# clf_scores(forest_clf, X_train_pca_4, y_train_red, title="Random forest with pca_4")
+# Random forest with pca_2
+# Train Precision = 0.9999
+# Test Precision = 0.4651
+# Train Recall = 0.8447
+# Test Recall = 0.0070
+# Train F1 score = 0.9157
+# Test F1 score = 0.0137
+
+
+# forest_clf_best, _ = grid_search_forest_max_features()
+# Best max_features = 'auto'
+# forest_clf_best, _ = grid_search_forest_n_estimators()
+# Best n_estimators = 100
+# print_precision_recall_f1_score(forest_clf_best)
+# Precision = 0.9659
+# Recall = 0.9658
+# F1 score = 0.9658
+
+
 
 
 
@@ -566,6 +645,7 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
 
 from sklearn.base import clone
 
+# Scores of classifier in train and test sets
 def test_scoring(clf, X_train=X_train_scaled, X_test=X_test_scaled,
                  y_train=y_train, y_test=y_test, name=None):
     if name:
@@ -593,6 +673,71 @@ def test_scoring(clf, X_train=X_train_scaled, X_test=X_test_scaled,
     print("Train F1: ", train_f1)
     print("Test F1: ", test_f1)
 
+    return [test_precision, test_recall, test_f1, train_precision, train_recall, train_f1]
 
-# test_scoring(sgd_clf_hinge, "SGD Hinge")
-# test_scoring(sgd_clf_hinge, X_train_rbf, X_test_rbf, y_train, y_test, "RBF")
+
+# Bar plot of train and test scores
+def scores_bar(scores, title=None):
+    labels = ["Precision", "Recall", "F1 score"]
+    train_scores = scores[3:]
+    test_scores = scores[:3]
+
+    x = np.arange(len(labels))  # the label locations
+    width = 0.35  # the width of the bars
+
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(x - width / 2, test_scores, width, label='Test')
+    rects2 = ax.bar(x + width / 2, train_scores, width, label='Train')
+
+    # Add some text for labels, title and custom x-axis tick labels, etc.
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+    plt.ylim([0, 1])
+    # fig.tight_layout()
+    if title:
+        ax.set_title(title)
+    else:
+        ax.set_title('Scores')
+    plt.show()
+
+# sgd_test_scores = test_scoring(sgd_clf_hinge, X_train_scaled, X_test_scaled, y_train, y_test, "Tuned SGD")
+# scores_bar(sgd_test_scores, "SGD")
+# Tuned SGD
+# Train Precision:  0.6017008504252126
+# Test Precision:  0.588871096877502
+# Train Recall:  0.37405149894265455
+# Test Recall:  0.36592039800995024
+# Train F1:  0.4613201396080236
+# Test F1:  0.451365449524394
+
+
+# Confussion matrix of classifiers
+from sklearn.metrics import confusion_matrix
+
+def conf_matrix(clf, X_train=X_train_scaled, X_test=X_test_scaled,
+                 y_train=y_train, y_test=y_test):
+    clf_test = clone(clf)
+    clf_test.fit(X_train, y_train)
+    # clf_test.fit(X_train_scaled, y_train.ravel())
+
+    y_train_predict = clf_test.predict(X_train)
+    y_test_predict = clf_test.predict(X_test)
+
+    test_matrix = confusion_matrix(y_test, y_test_predict)
+    train_matrix = confusion_matrix(y_train, y_train_predict)
+    return test_matrix
+
+print(conf_matrix(sgd_clf_hinge))
+# [[34953  1027]
+#  [ 2549  1471]]
+# Recall is very low, a lot of positive transactions are not predicted (2549 from a total of 4020)
+# depending on what should be more important, the precision/recall tradeoff could be adjusted
+
+print(conf_matrix(forest_clf))
+# [[35908    72]
+#  [ 3935    85]]
+
+
+# High bias of SGD not solved. Nonetheless it performs as a classifier
+# High variance of forest not solved. Model can not be said to be a classifier due its terrible performance on the test set
