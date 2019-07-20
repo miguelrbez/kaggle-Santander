@@ -1,0 +1,7 @@
+,param_max_leaf_nodes,param_n_estimators,mean_test_precision,rank_test_precision,mean_train_precision,mean_test_recall,rank_test_recall,mean_train_recall,mean_test_f1,rank_test_f1,mean_train_f1
+0,10,10,0,3,0,0,3,0,0,3,0
+1,10,30,0,3,0,0,3,0,0,3,0
+2,30,10,0,3,0.5,0,3,0.000248756,0,3,0.000497265
+3,30,30,0,3,0,0,3,0,0,3,0
+4,,10,0.45923913,2,1,0.008457711,1,0.841293532,0.016584312,1,0.913730867
+5,,30,0.75,1,1,0.000995025,2,0.980845771,0.001987331,2,0.990330262
