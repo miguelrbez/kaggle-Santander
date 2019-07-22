@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import pandas as pd
-import matplotlib
 import matplotlib.pyplot as plt
 
 
@@ -29,7 +28,7 @@ data = load_santander_data()
 X = data.iloc[:, 2:].values
 y = data["target"].values
 
-# Positive/Negative ratio
+# Positive/Negative labels ratio
 # print((y == True).sum() / len(y))
 # 0.10049 -> Around 1 out of 10 samples is positive. Accuracy is not the best scoring parameter
 
@@ -67,7 +66,13 @@ def hist_std_values(X=X):
 
 # hist_std_values(X)
 
-# The features std values are mostly close to 0, this could lead to the correlation hypothesis
+
+# FIXME memory problem
+# Correlation matrix of features
+# corr_matrix = pd.DataFrame(X_train).corr().values
+
+# Mean correlation value of features
+# mean_corr_values = np.mean(corr_matrix, axis=0)
 
 
 # Plot 100 first values of the four least uniform features for insight purpose
@@ -114,7 +119,7 @@ X_train_red, X_test_red, y_train_red, y_test_red = train_test_split(X, y,
 X_train_scaled_red, X_test_scaled_red = scale_data(X_train_red, X_test_red)
 
 
-# Scale features using RobustScaler
+# Scale features using RobustScaler in case dataset has many outliers
 from sklearn.preprocessing import RobustScaler
 
 def scale_R_data(X_train=X_train, X_test=X_test):
@@ -124,7 +129,6 @@ def scale_R_data(X_train=X_train, X_test=X_test):
 
 # Scale w/ robust X features
 # X_train_scaled_R, X_test_scaled_R = scale_R_data()
-
 
 # Scale w/ robust reduced X features
 # X_train_scaled_R_red, X_test_scaled_R_red = scale_R_data(X_train_red, X_test_red)
@@ -138,7 +142,7 @@ sgd_clf = SGDClassifier(random_state=8)
 forest_clf = RandomForestClassifier(random_state=8)
 
 
-# Print cross-validate precision, recall and F1 score for classifier
+# Print cross-validate precision, recall and F1 score for a given classifier
 from sklearn.model_selection import cross_validate
 
 def clf_scores(clf, X=X_train_scaled, y=y_train, title=None):
@@ -231,6 +235,7 @@ def plot_precision_recall_curve(y_true, y_scores, title=None):
 
 
 # Predict y_scores and plot precision-recall curve for classifiers
+
 # y_true, y_scores_sgd = predict_scores_sgd(X_train_scaled, y_train)
 # plot_precision_recall_curve(y_true, y_scores_sgd, "Default SGD")
 #
@@ -331,6 +336,7 @@ sgd_clf_perceptron = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0
 # _, sgd_gs_results_modified_huber = grid_search_sgd(param_grid_sgd_modified_huber, "modified_huber_2", 2, X_train_scaled, y_train) # Best: alpha = 0.001, l1_ratio = 0.9
 sgd_clf_modified_huber = SGDClassifier(random_state=8, penalty='elasticnet', alpha=0.0001, l1_ratio=0.9)
 # Precision = 0.58, Recall = 0.39, F1 score = 0.46
+
 
 # Tuned SGD classifiers improved from default SGD around: Precision: 42%, Recall: 24%, F1 score: 32%
 
@@ -516,7 +522,7 @@ def pca_X(X_train=X_train, X_test=X_test,
 # clf_scores(forest_clf, X_train_pca, y_train, "Forest with PCA (Whiten) and 190 components") # Recall = 0
 
 
-# Kernel approximatio
+# Kernel approximation
 from sklearn.kernel_approximation import RBFSampler, Nystroem
 
 def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
@@ -533,25 +539,41 @@ def rbf_map(X_train=X_train_red, X_test=X_test_red, gamma=0.2,
         X_train_mapped, X_test_mapped = scale_data(X_train_mapped, X_test_mapped)
     return X_train_mapped, X_test_mapped
 
+
 # Create RBF kernel map of X and scale it
-# X_train_rbf, X_test_rbf = rbf_map(X_train, X_test, n_components=100,
-#                                   rbfsampler=False, scale=True)
+X_train_rbf, X_test_rbf = rbf_map(X_train_red, X_test_red, n_components=600,
+                                  rbfsampler=True, scale=True, gamma=100)
+
+hist_mean_values(X_train_rbf)
 
 # Test SGD classifier with RBF mapped features
-# clf_scores(sgd_clf, X_train_rbf, y_train, "RBF kernel and default SGD") # High variance
-# clf_scores(sgd_clf_hinge, X_train_rbf, y_train, "RBF kernel and SGD hinge") # High variance
-# RBF kernel and SGD hinge
-# Train Precision = 1.0000
-# Test Precision = 0.0000
-# Train Recall = 0.0007
-# Test Recall = 0.0000
-# Train F1 score = 0.0013
-# Test F1 score = 0.0000
+clf_scores(sgd_clf, X_train_rbf, y_train_red, "RBF kernel and default SGD") # High variance
+# RBF kernel and default SGD
+# Train Precision = 0.1553
+# Test Precision = 0.0989
+# Train Recall = 0.1350
+# Test Recall = 0.0876
+# Train F1 score = 0.1443
+# Test F1 score = 0.0929
 
 
+# # Combine PCA with RBF kernel approximation. Test on reduced sets
+# X_train_pca, X_test_pca = pca_X(X_train_red, X_test_red, n_components=50, whiten=True, scale=False)
+# X_train_pca_rbf, X_test_pca_rbf = rbf_map(X_train_pca, X_test_pca, n_components=600, scale=True, gamma=10)
+#
+# clf_scores(sgd_clf, X_train_pca_rbf, y_train_red, "PCA - RBF SGD")
+# # PCA - RBF SGD
+# # Train Precision = 0.1356
+# # Test Precision = 0.0967
+# # Train Recall = 0.1279
+# # Test Recall = 0.0905
+# # Train F1 score = 0.1315
+# # Test F1 score = 0.0933
 
 
 # Tuning forest hyper-parameters
+
+# Plot random forest learning curves
 # plot_learning_curve(forest_clf, X_train_scaled, y_train, train_sizes_n=5, name="Reduced set - Random forest", scoring="precision"), # High variance
 
 
@@ -625,24 +647,7 @@ def grid_search_forest(param_grid, name, cv=2, X=X_train_scaled_red, y=y_train_r
 # Test F1 score = 0.0137
 
 
-# forest_clf_best, _ = grid_search_forest_max_features()
-# Best max_features = 'auto'
-# forest_clf_best, _ = grid_search_forest_n_estimators()
-# Best n_estimators = 100
-# print_precision_recall_f1_score(forest_clf_best)
-# Precision = 0.9659
-# Recall = 0.9658
-# F1 score = 0.9658
-
-
-
-
-
-
-
-
 # Test classifiers on X_train and X_test
-
 from sklearn.base import clone
 
 # Scores of classifier in train and test sets
@@ -701,6 +706,7 @@ def scores_bar(scores, title=None):
         ax.set_title('Scores')
     plt.show()
 
+
 # sgd_test_scores = test_scoring(sgd_clf_hinge, X_train_scaled, X_test_scaled, y_train, y_test, "Tuned SGD")
 # scores_bar(sgd_test_scores, "SGD")
 # Tuned SGD
@@ -728,13 +734,14 @@ def conf_matrix(clf, X_train=X_train_scaled, X_test=X_test_scaled,
     train_matrix = confusion_matrix(y_train, y_train_predict)
     return test_matrix
 
-print(conf_matrix(sgd_clf_hinge))
+
+# print(conf_matrix(sgd_clf_hinge))
 # [[34953  1027]
 #  [ 2549  1471]]
 # Recall is very low, a lot of positive transactions are not predicted (2549 from a total of 4020)
 # depending on what should be more important, the precision/recall tradeoff could be adjusted
 
-print(conf_matrix(forest_clf))
+# print(conf_matrix(forest_clf))
 # [[35908    72]
 #  [ 3935    85]]
 
